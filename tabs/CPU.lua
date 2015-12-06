@@ -139,6 +139,14 @@ function CPU:blt(line)
     end
 end
 
+function CPU:bge(line)
+    if self.flags.bits[Flags.names.Equal] == 1 or self.flags.bits[Flags.names.Greater] == 1 then
+        self.ip = Bits.read(line.imm)
+    else
+        self:next()
+    end
+end
+
 function CPU:bgt(line)
     if self.flags.bits[Flags.names.Greater] == 1 then
         self.ip:write(Bits.read(line.imm))
