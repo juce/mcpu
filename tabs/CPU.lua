@@ -1,3 +1,4 @@
+
 CPU = class()
 CPU.HALT = 0
 CPU.ADD = 1
@@ -180,11 +181,43 @@ end
 function CPU:draw()
     -- Codea does not automatically call this method
     for i,r in ipairs(self.regMap) do
-        r:draw(WIDTH/2+30, HEIGHT-i*30)
+        r:draw(WIDTH/2+130, HEIGHT-i*30)
     end
-    self.flags:draw(WIDTH/2+30, HEIGHT-10*30)
-    self.ip:draw(WIDTH/2+30, HEIGHT-11*30)
+    self.flags:draw(WIDTH/2+130, HEIGHT-10*30)
+    self.ip:draw(WIDTH/2+130, HEIGHT-11*30)
     
+    -- code lines
+    if self.showAssembler then
+        self:disasm_view()
+    else
+        self:codeLines_view()
+    end
+end
+
+function CPU:codeLines_view()
+    -- highlight active line
+    local i = self.ip:read()
+    fill(Colors.Highlight)
+    noStroke()
+    rect(30, HEIGHT-25-i*20, 40+20*25, 20)
+    
+    -- draw code lines
+    if self.codeLinesImage then
+        sprite(self.codeLinesImage, 5*WIDTH/16, HEIGHT/2)
+    else
+        self.codeLinesImage = image(5*WIDTH/8, HEIGHT)
+        setContext(self.codeLinesImage)
+        for i=0,31 do
+            local cline = self.codeLines[i]
+            cline:draw(i, 70, HEIGHT-25-i*20)
+        end
+        setContext()
+    end
+
+end
+
+function CPU:disasm_view()
+    -- disasm view
     fill(63, 112, 175, 255)
     if not txt then
         local lines = {}

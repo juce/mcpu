@@ -16,19 +16,19 @@ end
 
 function Register:draw(x, y)
     -- Codea does not automatically call this method
-    strokeWidth(3)
-    stroke(147, 136, 136, 255)
-    fill(219, 223, 18, 255)
+    strokeWidth(2)
+    stroke(Colors.Gray1)
+    fill(Colors.Yellow)
     text(self.name, x - 20, y + 10)
     for i,b in ipairs(self.bits) do
         if b == 1 then
-            fill(84, 255, 0, 255)
+            fill(Colors.Green)
         else
             noFill()
         end
-        rect(x + (i-1)*26, y, 26, 26)
+        rect(x + (i-1)*26, y, 25, 25)
     end
-    fill(0, 126, 255, 255)
+    fill(Colors.Blue)
     text(tostring(self:read()), x + 8*26 + 20, y + 10)
 end
 

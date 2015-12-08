@@ -1,7 +1,6 @@
 Instruction = class()
 
 function Instruction:init(opcode, in1, in2, out, imm)
-    setmetatable(self, mt)
     self.opcode = {0, 0, 0, 0}
     self.in1 = {0, 0, 0}
     self.in2 = {0, 0, 0}
@@ -28,8 +27,37 @@ function Instruction:disasm(opname)
     )
 end
 
-function Instruction:draw()
+function Instruction:draw(addr, x, y, strokeColor)
     -- Codea does not automatically call this method
+    strokeWidth(2)
+    fill(Colors.Yellow)
+    text(addr, x - 20, y + 10)
+    stroke(strokeColor or Colors.Gray1)
+    -- opcode
+    for i,b in ipairs(self.opcode) do
+        fill(b==1 and Colors.Green or Colors.Transparent)
+        rect(x + 20*(i-1), y, 19, 19)
+    end
+    -- in1
+    for i,b in ipairs(self.in1) do
+        fill(b==1 and Colors.Green or Colors.Transparent)
+        rect(x + 20*5 + 20*(i-1), y, 19, 19)
+    end
+    -- in2
+    for i,b in ipairs(self.in2) do
+        fill(b==1 and Colors.Green or Colors.Transparent)
+        rect(x + 20*9 + 20*(i-1), y, 19, 19)
+    end
+    -- out
+    for i,b in ipairs(self.out) do
+        fill(b==1 and Colors.Green or Colors.Transparent)
+        rect(x + 20*13 + 20*(i-1), y, 19, 19)
+    end
+    -- imm
+    for i,b in ipairs(self.imm) do
+        fill(b==1 and Colors.Green or Colors.Transparent)
+        rect(x + 20*17 + 20*(i-1), y, 19, 19)
+    end
 end
 
 function Instruction:touched(touch)

@@ -2,6 +2,7 @@
 
 displayMode(OVERLAY)
 displayMode(FULLSCREEN)
+supportedOrientations(LANDSCAPE_ANY)
 
 -- Use this function to perform your initial setup
 function setup()

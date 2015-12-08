@@ -17,9 +17,9 @@ function Flags:draw(x, y)
         local n = self.abbr[i]
         if n then
             if b == 1 then
-                fill(40, 40, 40, 255)
+                fill(Colors.Gray3)
             else
-                fill(109, 108, 108, 255)
+                fill(Colors.Gray1)
             end
             text(n, x + (i-1)*26 + 13, y + 13)
         end

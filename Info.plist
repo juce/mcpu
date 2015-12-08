@@ -7,6 +7,7 @@
 	<key>Buffer Order</key>
 	<array>
 		<string>Main</string>
+		<string>Colors</string>
 		<string>Bits</string>
 		<string>Register</string>
 		<string>Flags</string>
