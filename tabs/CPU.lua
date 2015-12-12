@@ -96,6 +96,8 @@ function CPU:init()
         self.flags:write(0)
         self.ip:write(0)
     end
+    
+    self._tab = {}
 end
 
 function CPU:reg(name)
@@ -253,6 +255,13 @@ function CPU:draw()
         self:codeLines_view()
     end
     
+    -- draw code-touch highlight
+    if self.codeTouch then
+        fill(Colors.Blue)
+        noStroke()
+        rect(70 + self.codeTouch.j*20, HEIGHT-25-self.codeTouch.i*20, 20, 20)
+    end
+    
     self.codeViewButton:draw()
     self.ipResetButton:draw()
     self.runButton:draw()
@@ -280,6 +289,7 @@ function CPU:codeLines_view()
             cline:draw(i, 70, HEIGHT-25-i*20)
         end
         setContext()
+        collectgarbage()
     end
 
 end
@@ -312,6 +322,7 @@ function CPU:disasm_view()
         end
         popStyle()
         setContext()
+        collectgarbage()
     end
 end
 
@@ -331,17 +342,21 @@ function CPU:touched(touch)
     self.clearCode:touched(touch)
     
     -- check for coding touches
-    if touch.state == ENDED then
-        clx = clx or 70
-        cly = cly or HEIGHT-25-31*20
-        clr = clr or clx + WIDTH/8*5
-        clt = clt or cly + HEIGHT
-        local x, y = touch.x, touch.y
-        if (clx <= x and x <= clr and cly <= y and y <= clt) then
+    clx = clx or 70
+    cly = cly or HEIGHT-25-31*20
+    clr = clr or clx + WIDTH/8*5
+    clt = clt or cly + HEIGHT
+    local x, y = touch.x, touch.y
+    if (clx <= x and x <= clr and cly <= y and y <= clt) then
+        local i = math.max(0, 31-(y-cly)//20)
+        local j = math.min(31, (x-clx)//20)
+        if touch.state == BEGAN or touch.state == MOVING then
+            self.codeTouch = self.codeTouch or self._tab
+            self.codeTouch.i = i
+            self.codeTouch.j = j
+        elseif touch.state == ENDED then
             self.codeLinesImage = nil
             self.codeLinesAsm = nil
-            local i = math.max(0, 31-(y-cly)//20)
-            local j = math.min(31, (x-clx)//20)
             if j <= 3 then
                 toggleBit(self.codeLines[i].opcode, j+1)
             elseif j >= 5 and j <= 7 then
@@ -353,6 +368,7 @@ function CPU:touched(touch)
             elseif j >= 17 and j <= 24 then
                 toggleBit(self.codeLines[i].imm, j-16)
             end
+            self.codeTouch = nil
         end
     end
 end
