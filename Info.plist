@@ -8,6 +8,7 @@
 	<array>
 		<string>Main</string>
 		<string>Colors</string>
+		<string>Button</string>
 		<string>Bits</string>
 		<string>Register</string>
 		<string>Flags</string>

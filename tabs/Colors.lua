@@ -1,7 +1,7 @@
 Colors = {}
 
 Colors.Transparent = color(127, 127, 127, 0)
-Colors.Highlight = color(49, 103, 189, 59)
+Colors.Highlight = color(48, 103, 189, 113)
 
 Colors.Gray1 = color(144, 143, 143, 255)
 Colors.Gray2 = color(94, 94, 94, 255)

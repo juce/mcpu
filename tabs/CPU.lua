@@ -31,7 +31,6 @@ function CPU:init()
         Register("r6"),
         Register("r7"),
     }
-    self.stopped = false
     self.flags = Flags("flags")
     self.ip = Register("ip")
     self.input = Register("inp")
@@ -40,6 +39,62 @@ function CPU:init()
     self.codeLines = {}
     for i=0,31 do
         self.codeLines[i] = Instruction(0, 0, 0, 0, 0)
+    end
+    
+    Button.dark = Colors.Gray1
+    Button.light = Colors.Gray3
+    
+    self.codeViewButton = Button("binary", WIDTH/2+130, 200, 100, 60)
+    self.codeViewButton.clicked = function(b)
+        self.showAssembler = not self.showAssembler
+        b.label = (self.showAssembler) and "asm" or "binary"
+    end
+    
+    self.ipResetButton = Button("reset ip", WIDTH/2+240, 200, 120, 60)
+    self.ipResetButton.clicked = function(b)
+        self.ip:write(0)
+    end
+    
+    self.runButton = Button("run", WIDTH/2+130, 130, 80, 60)
+    self.runButton.clicked = function(b)
+        self.flags:setRunning(1)
+        self.flags:setStepping(0)
+    end
+    
+    self.stopButton = Button("stop", WIDTH/2+220, 130, 80, 60)
+    self.stopButton.clicked = function(b)
+        self.flags:setRunning(0)
+    end
+    
+    self.stepButton = Button("step", WIDTH/2+310, 130, 80, 60)
+    self.stepButton.clicked = function(b)
+        self.flags:setRunning(1)
+        self.flags:setStepping(1)
+    end
+    
+    self.clearCode = Button("clear code", WIDTH/2+130, 60, 140, 60)
+    self.clearCode.clicked = function(b)
+        for i=0,31 do
+            self.codeLinesImage = nil
+            self.codeLinesAsm = nil
+            local c = self.codeLines[i]
+            Bits.write(0, c.opcode)
+            Bits.write(0, c.in1)
+            Bits.write(0, c.in2)
+            Bits.write(0, c.out) 
+            Bits.write(0, c.imm)
+        end
+    end
+    
+    self.resetAll = Button("reset all", WIDTH/2+280, 60, 120, 60)
+    self.resetAll.clicked = function(b)
+        for i,r in ipairs(self.regMap) do
+            r:write(0)
+        end
+        self.input:write(0)
+        self.output:write(0)
+        self.flags:write(0)
+        self.ip:write(0)
     end
 end
 
@@ -60,7 +115,7 @@ function CPU:regValues(s)
 end
 
 function CPU:execute()
-    if self.stopped then
+    if not self.flags:isRunning() then
         return false
     end
     local line = self.codeLines[self.ip:read()]
@@ -72,6 +127,9 @@ function CPU:execute()
         error("FATAL: invalid instruction at address: " .. self.ip)
     end
     CPU[inst](self, line)
+    if self.flags:isStepping() then
+        self.flags:setRunning(0)
+    end
     return true
 end
 
@@ -80,7 +138,7 @@ function CPU:next()
 end
 
 function CPU:halt(line)
-    self.stopped = true
+    self.flags:setRunning(0)
 end
 
 function CPU:add(line)
@@ -156,7 +214,7 @@ function CPU:bgt(line)
     end
 end
 
-function CPU.b(line)
+function CPU:b(line)
     self.ip:write(Bits.read(line.imm))
 end
 
@@ -185,6 +243,8 @@ function CPU:draw()
     end
     self.flags:draw(WIDTH/2+130, HEIGHT-10*30)
     self.ip:draw(WIDTH/2+130, HEIGHT-11*30)
+    self.input:draw(WIDTH/2+130, HEIGHT-13*30)
+    self.output:draw(WIDTH/2+130, HEIGHT-14*30)
     
     -- code lines
     if self.showAssembler then
@@ -192,6 +252,14 @@ function CPU:draw()
     else
         self:codeLines_view()
     end
+    
+    self.codeViewButton:draw()
+    self.ipResetButton:draw()
+    self.runButton:draw()
+    self.stopButton:draw()
+    self.stepButton:draw()
+    self.resetAll:draw()
+    self.clearCode:draw()
 end
 
 function CPU:codeLines_view()
@@ -217,26 +285,74 @@ function CPU:codeLines_view()
 end
 
 function CPU:disasm_view()
+    -- highlight active line
+    local i = self.ip:read()
+    fill(Colors.Highlight)
+    noStroke()
+    rect(30, HEIGHT-25-i*20, 40+20*25, 20)
+    
     -- disasm view
-    fill(63, 112, 175, 255)
-    if not txt then
-        local lines = {}
+    fill(Colors.Gray1)
+    if self.codeLinesAsm then
+        sprite(self.codeLinesAsm, WIDTH/4, HEIGHT/2)
+    else
+        self.codeLinesAsm = image(WIDTH/2, HEIGHT)
+        setContext(self.codeLinesAsm)
+        pushStyle()
         for i=0,31 do
             local opcode = Bits.read(self.codeLines[i].opcode)
             local opname = self.instMap[opcode + 1]
             local inst = Instruction.disasm(self.codeLines[i], opname)
-            lines[#lines + 1] = string.format("%2d: %s", i, inst)
+            local txt = string.format("%2d:  %s", i, inst)
+            textMode(CORNER)
+            text(txt, 40, HEIGHT-25-i*20)
             if opname == "halt" then
                 break
             end
         end
-        txt = table.concat(lines, "\n")
-        tw,th = textSize(txt)
-    else
-        text(txt, 40 + tw/2, HEIGHT - 10 - th/2)
+        popStyle()
+        setContext()
     end
+end
+
+local function toggleBit(bits, i)
+    bits[i] = (bits[i] + 1) % 2
+    sound(SOUND_PICKUP, 26938)
 end
 
 function CPU:touched(touch)
     -- Codea does not automatically call this method
+    self.codeViewButton:touched(touch)
+    self.ipResetButton:touched(touch)
+    self.runButton:touched(touch)
+    self.stopButton:touched(touch)
+    self.stepButton:touched(touch)
+    self.resetAll:touched(touch)
+    self.clearCode:touched(touch)
+    
+    -- check for coding touches
+    if touch.state == ENDED then
+        clx = clx or 70
+        cly = cly or HEIGHT-25-31*20
+        clr = clr or clx + WIDTH/8*5
+        clt = clt or cly + HEIGHT
+        local x, y = touch.x, touch.y
+        if (clx <= x and x <= clr and cly <= y and y <= clt) then
+            self.codeLinesImage = nil
+            self.codeLinesAsm = nil
+            local i = math.max(0, 31-(y-cly)//20)
+            local j = math.min(31, (x-clx)//20)
+            if j <= 3 then
+                toggleBit(self.codeLines[i].opcode, j+1)
+            elseif j >= 5 and j <= 7 then
+                toggleBit(self.codeLines[i].in1, j-4)
+            elseif j >= 9 and j <= 11 then
+                toggleBit(self.codeLines[i].in2, j-8)
+            elseif j >= 13 and j <= 15 then
+                toggleBit(self.codeLines[i].out, j-12)
+            elseif j >= 17 and j <= 24 then
+                toggleBit(self.codeLines[i].imm, j-16)
+            end
+        end
+    end
 end

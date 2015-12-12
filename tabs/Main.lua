@@ -51,5 +51,10 @@ function draw()
     end
     
     cpu:draw()
+    collectgarbage()
+end
+
+function touched(touch)
+    cpu:touched(touch)
 end
 
