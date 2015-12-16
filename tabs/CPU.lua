@@ -1,25 +1,28 @@
 
 CPU = class()
-CPU.HALT = 0
+CPU.NOP = 0
 CPU.ADD = 1
 CPU.SUB = 2
-CPU.MOV = 3
-CPU.LOAD = 4
-CPU.STOR = 5
-CPU.BLE = 6
-CPU.BLT = 7
-CPU.BGE = 8
-CPU.BGT = 9
-CPU.B = 10
-CPU.CMP = 11
-CPU.RSHFT = 12
+CPU.AND = 3
+CPU.NAND = 4
+CPU.OR = 5
+CPU.NOR = 6
+CPU.XOR = 7
+CPU.NXOR = 8
+CPU.RSHFT = 9
+CPU.BEQ = 10
+CPU.BGT = 11
+CPU.USI = 12
+CPU.USO = 13
+CPU.ERR = 14
+CPU.HALT = 15
 
 function CPU:init() 
     self.instMap = {
-        "halt", "add", "sub", "mov", 
-        "load", "stor", "ble", "blt",
-        "bge", "bgt", "b", "cmp",
-        "rshft",
+        "nop", "add", "sub", "And", 
+        "nAnd", "Or", "nOr", "Xor", 
+        "nXor", "rshft", "beq", "bgt",
+        "usi", "uso", "err", "halt",
     }  
     self.regMap = {
         Register("r0"),
@@ -37,7 +40,7 @@ function CPU:init()
     self.output = Register("out")
     
     self.codeLines = {}
-    for i=0,31 do
+    for i=1,31 do
         self.codeLines[i] = Instruction(0, 0, 0, 0, 0)
     end
     
@@ -52,7 +55,7 @@ function CPU:init()
     
     self.ipResetButton = Button("reset ip", WIDTH/2+240, 200, 120, 60)
     self.ipResetButton.clicked = function(b)
-        self.ip:write(0)
+        self.ip:write(1)
     end
     
     self.runButton = Button("run", WIDTH/2+130, 130, 80, 60)
@@ -74,7 +77,7 @@ function CPU:init()
     
     self.clearCode = Button("clear code", WIDTH/2+130, 60, 140, 60)
     self.clearCode.clicked = function(b)
-        for i=0,31 do
+        for i=1,31 do
             self.codeLinesImage = nil
             self.codeLinesAsm = nil
             local c = self.codeLines[i]
@@ -94,9 +97,10 @@ function CPU:init()
         self.input:write(0)
         self.output:write(0)
         self.flags:write(0)
-        self.ip:write(0)
+        self.ip:write(1)
     end
     
+    self.ip:write(1)
     self._tab = {}
 end
 
@@ -165,50 +169,33 @@ function CPU:sub(line)
     self:next()
 end
 
-function CPU:mov(line)
-    local in1 = self.regMap[Bits.read(line.in1) + 1]
-    local out = self.regMap[Bits.read(line.out) + 1]
-    out:write(in1:read() | Bits.read(line.imm))
+function CPU:nop(line)
     self:next()
 end
 
-function CPU:load(line)
+function CPU:usi(line)
     local out = self.regMap[Bits.read(line.out) + 1]
     out:write(self.input:read())
     self:next()
 end
 
-function CPU:stor(line)
+function CPU:uso(line)
     local in1 = self.regMap[Bits.read(line.in1) + 1]
     self.output:write(in1:read())
     self:next()
 end
 
-function CPU:ble(line)
-    if self.flags.bits[Flags.names.Equal] == 1 or self.flags.bits[Flags.names.Less] == 1 then
-        self.ip = Bits.read(line.imm)
-    else
-        self:next()
-    end
-end
-
-function CPU:blt(line)
-    if self.flags.bits[Flags.names.Less] == 1 then
+function CPU:beq(line)
+    self:_cmp(line)
+    if self.flags.bits[Flags.names.Equal] == 1 then
         self.ip:write(Bits.read(line.imm))
     else
         self:next()
     end
 end
 
-function CPU:bge(line)
-    if self.flags.bits[Flags.names.Equal] == 1 or self.flags.bits[Flags.names.Greater] == 1 then
-        self.ip = Bits.read(line.imm)
-    else
-        self:next()
-    end
-end
-
 function CPU:bgt(line)
+    self:_cmp(line)
     if self.flags.bits[Flags.names.Greater] == 1 then
         self.ip:write(Bits.read(line.imm))
     else
@@ -216,18 +203,55 @@ function CPU:bgt(line)
     end
 end
 
-function CPU:b(line)
-    self.ip:write(Bits.read(line.imm))
+function CPU:And(line)
+    for i=1,8 do
+        line.out.bits[i] = (line.in1.bits[i] == 1 and line.in2.bits[i] == 1) and 1 or 0
+    end
+    self:next()
 end
 
-function CPU:cmp(line)
+function CPU:nAnd(line)
+    for i=1,8 do
+        line.out.bits[i] = (line.in1.bits[i] == 1 and line.in2.bits[i] == 1) and 0 or 1
+    end
+    self:next()
+end
+
+function CPU:Or(line)
+    for i=1,8 do
+        line.out.bits[i] = (line.in1.bits[i] == 1 or line.in2.bits[i] == 1) and 1 or 0
+    end
+    self:next()
+end
+
+function CPU:nOr(line)
+    for i=1,8 do
+        line.out.bits[i] = (line.in1.bits[i] == 1 or line.in2.bits[i] == 1) and 0 or 1
+    end
+    self:next()
+end
+
+function CPU:Xor(line)
+    for i=1,8 do
+        line.out.bits[i] = (line.in1.bits[i] ~= line.in2.bits[i]) and 1 or 0
+    end
+    self:next()
+end
+
+function CPU:nXor(line)
+    for i=1,8 do
+        line.out.bits[i] = (line.in1.bits[i] ~= line.in2.bits[i]) and 0 or 1
+    end
+    self:next()
+end
+
+function CPU:_cmp(line)
     local in1 = self.regMap[Bits.read(line.in1) + 1]
     local in2 = self.regMap[Bits.read(line.in2) + 1]
-    local diff = in1:read() - in2:read()
+    local diff = in2:read() - in1:read()
     self.flags.bits[Flags.names.Equal] = diff==0 and 1 or 0
-    self.flags.bits[Flags.names.Less] = diff<0 and 1 or 0
+    --self.flags.bits[Flags.names.Less] = diff<0 and 1 or 0
     self.flags.bits[Flags.names.Greater] = diff>0 and 1 or 0
-    self:next()
 end
 
 function CPU:rshft(line)
@@ -259,7 +283,7 @@ function CPU:draw()
     if self.codeTouch then
         fill(Colors.Blue)
         noStroke()
-        rect(70 + self.codeTouch.j*20, HEIGHT-25-self.codeTouch.i*20, 20, 20)
+        rect(70 + self.codeTouch.j*20, HEIGHT-25-(self.codeTouch.i-1)*20, 20, 20)
     end
     
     self.codeViewButton:draw()
@@ -274,9 +298,11 @@ end
 function CPU:codeLines_view()
     -- highlight active line
     local i = self.ip:read()
-    fill(Colors.Highlight)
-    noStroke()
-    rect(30, HEIGHT-25-i*20, 40+20*25, 20)
+    if i>0 then
+        fill(Colors.Highlight)
+        noStroke()
+        rect(30, HEIGHT-25-(i-1)*20, 40+20*25, 20)
+    end
     
     -- draw code lines
     if self.codeLinesImage then
@@ -284,9 +310,9 @@ function CPU:codeLines_view()
     else
         self.codeLinesImage = image(5*WIDTH/8, HEIGHT)
         setContext(self.codeLinesImage)
-        for i=0,31 do
+        for i=1,31 do
             local cline = self.codeLines[i]
-            cline:draw(i, 70, HEIGHT-25-i*20)
+            cline:draw(i, 70, HEIGHT-25-(i-1)*20)
         end
         setContext()
         collectgarbage()
@@ -297,9 +323,11 @@ end
 function CPU:disasm_view()
     -- highlight active line
     local i = self.ip:read()
-    fill(Colors.Highlight)
-    noStroke()
-    rect(30, HEIGHT-25-i*20, 40+20*25, 20)
+    if i>0 then
+        fill(Colors.Highlight)
+        noStroke()
+        rect(30, HEIGHT-25-(i-1)*20, 40+20*25, 20)
+    end
     
     -- disasm view
     fill(Colors.Gray1)
@@ -309,15 +337,15 @@ function CPU:disasm_view()
         self.codeLinesAsm = image(WIDTH/2, HEIGHT)
         setContext(self.codeLinesAsm)
         pushStyle()
-        for i=0,31 do
+        local haveNotNop
+        for i=31,1,-1 do
             local opcode = Bits.read(self.codeLines[i].opcode)
-            local opname = self.instMap[opcode + 1]
-            local inst = Instruction.disasm(self.codeLines[i], opname)
-            local txt = string.format("%2d:  %s", i, inst)
-            textMode(CORNER)
-            text(txt, 40, HEIGHT-25-i*20)
-            if opname == "halt" then
-                break
+            if opcode ~= CPU.NOP or haveNotNop or i==1 then
+                local opname = string.lower(self.instMap[opcode + 1])
+                local inst = Instruction.disasm(self.codeLines[i], opname)
+                local txt = string.format("%2d:  %s", i, inst)
+                textMode(CORNER)
+                text(txt, 40, HEIGHT-25-(i-1)*20)
             end
         end
         popStyle()
@@ -341,15 +369,25 @@ function CPU:touched(touch)
     self.resetAll:touched(touch)
     self.clearCode:touched(touch)
     
+    -- register touches
+    for i,r in ipairs(self.regMap) do
+        r:touched(touch, WIDTH/2+130, HEIGHT-i*30)
+    end
+    --self.flags:touched(touch, WIDTH/2+130, HEIGHT-10*30)
+    self.ip:touched(touch, WIDTH/2+130, HEIGHT-11*30)
+    self.input:touched(touch, WIDTH/2+130, HEIGHT-13*30)
+    --self.output:touched(touch, WIDTH/2+130, HEIGHT-14*30)
+   
+    
     -- check for coding touches
     clx = clx or 70
-    cly = cly or HEIGHT-25-31*20
-    clr = clr or clx + WIDTH/8*5
-    clt = clt or cly + HEIGHT
+    cly = cly or HEIGHT-25-30*20
+    clr = clr or WIDTH/8*5
+    clt = clt or HEIGHT
     local x, y = touch.x, touch.y
     if (clx <= x and x <= clr and cly <= y and y <= clt) then
-        local i = math.max(0, 31-(y-cly)//20)
-        local j = math.min(31, (x-clx)//20)
+        local i = math.max(0, 30-(y-cly)//20)+1
+        local j = math.min(24, (x-clx)//20)
         if touch.state == BEGAN or touch.state == MOVING then
             self.codeTouch = self.codeTouch or self._tab
             self.codeTouch.i = i

@@ -32,6 +32,15 @@ function Register:draw(x, y)
     text(tostring(self:read()), x + 8*26 + 20, y + 10)
 end
 
-function Register:touched(touch)
+function Register:touched(touch, xl, yb)
     -- Codea does not automatically call this method
+    if touch.state ~= ENDED then
+        return
+    end
+    local x, y = touch.x, touch.y
+    local xr, yt = xl + 8*26, yb + 26
+    if (xl <= x and x <= xr and yb <= y and y <= yt) then
+        local i = (x - xl)//26 + 1
+        self.bits[i] = (self.bits[i] + 1) % 2
+    end
 end
