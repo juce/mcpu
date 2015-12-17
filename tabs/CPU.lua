@@ -364,6 +364,7 @@ function CPU:disasm_view()
                 local txt = string.format("%2d:  %s", i, inst)
                 textMode(CORNER)
                 text(txt, 40, HEIGHT-25-(i-1)*20)
+                haveNotNop = true
             end
         end
         popStyle()
