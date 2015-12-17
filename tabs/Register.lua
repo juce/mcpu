@@ -42,5 +42,6 @@ function Register:touched(touch, xl, yb)
     if (xl <= x and x <= xr and yb <= y and y <= yt) then
         local i = (x - xl)//26 + 1
         self.bits[i] = (self.bits[i] + 1) % 2
+        sound(SOUND_PICKUP, 9107)
     end
 end

@@ -204,43 +204,61 @@ function CPU:bgt(line)
 end
 
 function CPU:And(line)
+    local in1 = self.regMap[Bits.read(line.in1) + 1]
+    local in2 = self.regMap[Bits.read(line.in2) + 1]
+    local out = self.regMap[Bits.read(line.out) + 1]
     for i=1,8 do
-        line.out.bits[i] = (line.in1.bits[i] == 1 and line.in2.bits[i] == 1) and 1 or 0
+        out.bits[i] = (in1.bits[i] == 1 and in2.bits[i] == 1) and 1 or 0
     end
     self:next()
 end
 
 function CPU:nAnd(line)
+    local in1 = self.regMap[Bits.read(line.in1) + 1]
+    local in2 = self.regMap[Bits.read(line.in2) + 1]
+    local out = self.regMap[Bits.read(line.out) + 1]
     for i=1,8 do
-        line.out.bits[i] = (line.in1.bits[i] == 1 and line.in2.bits[i] == 1) and 0 or 1
+        out.bits[i] = (in1.bits[i] == 1 and in2.bits[i] == 1) and 0 or 1
     end
     self:next()
 end
 
 function CPU:Or(line)
+    local in1 = self.regMap[Bits.read(line.in1) + 1]
+    local in2 = self.regMap[Bits.read(line.in2) + 1]
+    local out = self.regMap[Bits.read(line.out) + 1]
     for i=1,8 do
-        line.out.bits[i] = (line.in1.bits[i] == 1 or line.in2.bits[i] == 1) and 1 or 0
+        out.bits[i] = (in1.bits[i] == 1 or in2.bits[i] == 1) and 1 or 0
     end
     self:next()
 end
 
 function CPU:nOr(line)
+    local in1 = self.regMap[Bits.read(line.in1) + 1]
+    local in2 = self.regMap[Bits.read(line.in2) + 1]
+    local out = self.regMap[Bits.read(line.out) + 1]
     for i=1,8 do
-        line.out.bits[i] = (line.in1.bits[i] == 1 or line.in2.bits[i] == 1) and 0 or 1
+        out.bits[i] = (in1.bits[i] == 1 or in2.bits[i] == 1) and 0 or 1
     end
     self:next()
 end
 
 function CPU:Xor(line)
+    local in1 = self.regMap[Bits.read(line.in1) + 1]
+    local in2 = self.regMap[Bits.read(line.in2) + 1]
+    local out = self.regMap[Bits.read(line.out) + 1]
     for i=1,8 do
-        line.out.bits[i] = (line.in1.bits[i] ~= line.in2.bits[i]) and 1 or 0
+        out.bits[i] = (in1.bits[i] ~= in2.bits[i]) and 1 or 0
     end
     self:next()
 end
 
 function CPU:nXor(line)
+    local in1 = self.regMap[Bits.read(line.in1) + 1]
+    local in2 = self.regMap[Bits.read(line.in2) + 1]
+    local out = self.regMap[Bits.read(line.out) + 1]
     for i=1,8 do
-        line.out.bits[i] = (line.in1.bits[i] ~= line.in2.bits[i]) and 0 or 1
+        out.bits[i] = (in1.bits[i] ~= in2.bits[i]) and 0 or 1
     end
     self:next()
 end
